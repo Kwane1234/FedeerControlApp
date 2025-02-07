@@ -70,6 +70,21 @@
             background: #003366;
         }
 
+        /* LCD Virtual */
+        .lcd {
+            width: 90%;
+            max-width: 350px;
+            background: black;
+            color: #0f0;
+            padding: 10px;
+            margin-top: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            text-align: left;
+            min-height: 80px;
+            box-shadow: inset 0 0 8px #0f0;
+        }
+
         /* Responsif */
         @media (max-width: 480px) {
             .container {
@@ -80,7 +95,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-app.js";
-        import { getDatabase, ref, set, get, update } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-database.js";
+        import { getDatabase, ref, set, get, update, onValue } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-database.js";
 
         // Konfigurasi Firebase
         const firebaseConfig = {
@@ -106,9 +121,9 @@
                 siang: siang,
                 sore: sore
             }).then(() => {
-                alert("Jadwal pakan berhasil diperbarui!");
+                updateLCD("Jadwal diperbarui");
             }).catch((error) => {
-                console.error("Gagal menyimpan data: ", error);
+                updateLCD("Gagal simpan jadwal");
             });
         }
 
@@ -120,25 +135,45 @@
                     document.getElementById("sore").value = snapshot.val().sore;
                 }
             }).catch((error) => {
-                console.error("Gagal mengambil data: ", error);
+                updateLCD("Gagal ambil jadwal");
             });
         }
 
         function jalankanServoManual() {
-            update(ref(db), { manualServo: true }).then(() => {
-                alert("Servo bergerak secara manual!");
+            update(ref(db), { manualServo: true, waktuServo: new Date().toLocaleTimeString() }).then(() => {
+                updateLCD("Servo manual aktif!");
             }).catch((error) => {
-                console.error("Gagal mengaktifkan servo manual: ", error);
+                updateLCD("Gagal aktifkan manual");
             });
         }
 
         function aktifkanOtomatis() {
             update(ref(db), { modeOtomatis: true }).then(() => {
-                alert("Mode otomatis diaktifkan!");
+                updateLCD("Mode otomatis aktif!");
             }).catch((error) => {
-                console.error("Gagal mengaktifkan mode otomatis: ", error);
+                updateLCD("Gagal aktifkan otomatis");
             });
         }
+
+        function updateLCD(pesan) {
+            document.getElementById("lcd").innerHTML = pesan;
+        }
+
+        // Mendengarkan perubahan status dari Firebase
+        onValue(ref(db), (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                let status = `Koneksi: ✅<br>`;
+                status += `Mode: ${data.modeOtomatis ? "Otomatis" : "Manual"}<br>`;
+                status += `Servo: ${data.manualServo ? "Bergerak" : "Diam"}<br>`;
+                if (data.waktuServo) {
+                    status += `Terakhir: ${data.waktuServo}`;
+                }
+                updateLCD(status);
+            } else {
+                updateLCD("Belum ada data");
+            }
+        });
 
         window.onload = ambilJadwal;
     </script>
@@ -158,6 +193,9 @@
         <button onclick="simpanJadwal()">Simpan Jadwal</button>
         <button onclick="jalankanServoManual()">Manual</button>
         <button onclick="aktifkanOtomatis()">Otomatis</button>
+
+        <!-- LCD Virtual -->
+        <div class="lcd" id="lcd">Menunggu data...</div>
     </div>
 </body>
 </html>
