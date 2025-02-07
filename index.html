@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard ESP8266</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f5f5f5;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        #lcd {
+            width: 300px;
+            height: 50px;
+            background-color: #000;
+            color: #0f0;
+            font-size: 20px;
+            line-height: 50px;
+            margin: 10px auto;
+            border-radius: 5px;
+            text-align: center;
+        }
+        button {
+            display: block;
+            width: 200px;
+            margin: 10px auto;
+            padding: 10px;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        #login-btn {
+            background-color: #4285F4;
+            color: white;
+        }
+        #logout-btn {
+            background-color: #d9534f;
+            color: white;
+        }
+        #manual-btn, #auto-btn, #set-time-btn {
+            background-color: #0275d8;
+            color: white;
+        }
+        input[type="time"] {
+            display: block;
+            margin: 10px auto;
+            padding: 5px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- LCD Virtual -->
+        <div id="lcd">Menunggu koneksi...</div>
+
+        <!-- Tombol Login/Logout -->
+        <button id="login-btn">Login dengan Google</button>
+        <button id="logout-btn" style="display: none;">Logout</button>
+
+        <!-- Kontrol Servo -->
+        <button id="manual-btn">Mode Manual</button>
+        <button id="auto-btn">Mode Otomatis</button>
+        <input type="time" id="schedule-time">
+        <button id="set-time-btn">Atur Jadwal</button>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-auth.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-database.js";
+
+        // Firebase Konfigurasi
+        const firebaseConfig = {
+            apiKey: "AIzaSyDVgR-o-6KIjpj94CkFgpDVRm3vcXmvHas",
+            authDomain: "nodecmu-a5cf5.firebaseapp.com",
+            databaseURL: "https://nodecmu-a5cf5-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "nodecmu-a5cf5",
+            storageBucket: "nodecmu-a5cf5.appspot.com",
+            messagingSenderId: "736192179912",
+            appId: "1:736192179912:web:e659905aa52436f7cfbffd"
+        };
+
+        // Inisialisasi Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+        const db = getDatabase(app);
+
+        // Elemen UI
+        const lcd = document.getElementById("lcd");
+        const loginBtn = document.getElementById("login-btn");
+        const logoutBtn = document.getElementById("logout-btn");
+        const manualBtn = document.getElementById("manual-btn");
+        const autoBtn = document.getElementById("auto-btn");
+        const scheduleInput = document.getElementById("schedule-time");
+        const setTimeBtn = document.getElementById("set-time-btn");
+
+        // Login Google
+        loginBtn.addEventListener("click", () => {
+            signInWithPopup(auth, provider).then((result) => {
+                const user = result.user;
+                saveUserData(user);
+            }).catch((error) => {
+                alert("Login gagal: " + error.message);
+            });
+        });
+
+        // Logout
+        logoutBtn.addEventListener("click", () => {
+            signOut(auth).then(() => {
+                lcd.innerText = "Menunggu koneksi...";
+            });
+        });
+
+        // Cek Status Login
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                lcd.innerText = `Tersambung: ${user.displayName}`;
+                loginBtn.style.display = "none";
+                logoutBtn.style.display = "block";
+            } else {
+                lcd.innerText = "Menunggu koneksi...";
+                loginBtn.style.display = "block";
+                logoutBtn.style.display = "none";
+            }
+        });
+
+        // Simpan Data User ke Firebase
+        function saveUserData(user) {
+            set(ref(db, "users/" + user.uid), {
+                name: user.displayName,
+                email: user.email,
+                uid: user.uid
+            });
+        }
+
+        // Kontrol Servo Manual
+        manualBtn.addEventListener("click", () => {
+            set(ref(db, "servo/mode"), "manual");
+        });
+
+        // Kontrol Servo Otomatis
+        autoBtn.addEventListener("click", () => {
+            set(ref(db, "servo/mode"), "auto");
+        });
+
+        // Atur Jadwal Servo
+        setTimeBtn.addEventListener("click", () => {
+            const time = scheduleInput.value;
+            if (time) {
+                set(ref(db, "servo/schedule"), time);
+                alert("Jadwal disimpan: " + time);
+            }
+        });
+
+        // Update Status Servo di LCD Virtual
+        onValue(ref(db, "servo/mode"), (snapshot) => {
+            lcd.innerText = `Mode: ${snapshot.val()}`;
+        });
+
+    </script>
+</body>
+</html>
