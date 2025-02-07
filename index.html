@@ -62,7 +62,7 @@
             border-radius: 5px;
             cursor: pointer;
             font-size: 16px;
-            margin-top: 15px;
+            margin-top: 10px;
             transition: 0.3s;
         }
 
@@ -77,10 +77,12 @@
             }
         }
     </style>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-app.js";
-        import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-database.js";
+        import { getDatabase, ref, set, get, update } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-database.js";
 
+        // Konfigurasi Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyDVgR-o-6KIjpj94CkFgpDVRm3vcXmvHas",
             authDomain: "nodecmu-a5cf5.firebaseapp.com",
@@ -122,6 +124,22 @@
             });
         }
 
+        function jalankanServoManual() {
+            update(ref(db), { manualServo: true }).then(() => {
+                alert("Servo bergerak secara manual!");
+            }).catch((error) => {
+                console.error("Gagal mengaktifkan servo manual: ", error);
+            });
+        }
+
+        function aktifkanOtomatis() {
+            update(ref(db), { modeOtomatis: true }).then(() => {
+                alert("Mode otomatis diaktifkan!");
+            }).catch((error) => {
+                console.error("Gagal mengaktifkan mode otomatis: ", error);
+            });
+        }
+
         window.onload = ambilJadwal;
     </script>
 </head>
@@ -138,6 +156,8 @@
         <input type="time" id="sore"><br><br>
 
         <button onclick="simpanJadwal()">Simpan Jadwal</button>
+        <button onclick="jalankanServoManual()">Manual</button>
+        <button onclick="aktifkanOtomatis()">Otomatis</button>
     </div>
 </body>
 </html>
